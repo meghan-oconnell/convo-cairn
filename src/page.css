@@ -1,0 +1,42 @@
+/* Instrument Sans (SIL Open Font License; see fonts/OFL.txt), bundled with
+   the extension so no font is fetched from the web. It's declared here, on
+   the page, because Chrome ignores fonts declared inside a shadow root. The
+   name is Cairn's own so it can't clash with claude.ai's fonts. Latin
+   characters only; other scripts fall back to the system font. */
+@font-face {
+  font-family: 'Cairn Instrument Sans';
+  src: url('chrome-extension://__MSG_@@extension_id__/fonts/InstrumentSans.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* The only other Cairn styles on claude.ai's own page: the Bookmark button added
+   inside Claude's dark highlight popup, and the flash when you arrive at a
+   bookmark. Everything else is in panel.css, inside Cairn's shadow root. */
+
+.cairn-tip-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.18);
+  align-self: center;
+}
+
+.cairn-tip-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-family: 'Cairn Instrument Sans', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cairn-tip-btn:hover { background: rgba(255, 255, 255, 0.1); }
+
+::highlight(cairn-flash) { background-color: rgba(106, 153, 147, 0.4); }

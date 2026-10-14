@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Convo Cairn",
+  "version": "0.2.0",
+  "description": "Bookmark spots in your claude.ai chats and climb back to the text you replied to. Not affiliated with Anthropic.",
+  "permissions": ["storage"],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://claude.ai/*"],
+      "js": [
+        "src/claude-page.js",
+        "src/anchor.js",
+        "src/store.js",
+        "src/namer.js",
+        "src/ui.js",
+        "src/rail.js",
+        "src/ladder.js",
+        "src/bookmarks.js",
+        "src/replies.js",
+        "src/main.js"
+      ],
+      "css": ["src/page.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/panel.css", "fonts/InstrumentSans.woff2"],
+      "matches": ["https://claude.ai/*"]
+    }
+  ]
+}

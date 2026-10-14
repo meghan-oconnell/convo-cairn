@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cairn practice page</title>
+<!--
+  A fake claude.ai chat for testing Cairn without installing it.
+  It copies the parts of claude.ai that Cairn relies on: numbered message rows
+  that load in and out as you scroll, the dark "Reply" popup, the quote chip
+  in the composer, and the Send button.
+  Serve the project folder (python3 -m http.server) and open
+  http://localhost:8000/test/chat/11111111-2222-3333-4444-555555555555/
+  Add ?test to the address to run the automated checks in tests/practice-suite.js.
+-->
+<link rel="stylesheet" href="../../../src/page.css">
+<style>
+  /* page.css loads the font from the installed extension; the practice page
+     isn't one, so it declares the same font from the project folder. */
+  @font-face { font-family: 'Cairn Instrument Sans'; src: url('../../../fonts/InstrumentSans.woff2') format('woff2'); font-weight: 400 700; }
+  body { margin: 0; background: #faf9f5; color: #141413; font: 16px/1.6 Georgia, serif; height: 100vh; display: flex; flex-direction: column; }
+  .scroller { flex: 1; overflow-y: auto; }
+  [data-testid="transcript-list"] { width: 680px; margin: 0 auto; position: relative; }
+  [data-testid="transcript-row"] { position: absolute; left: 0; right: 0; }
+  [data-testid="user-message"] { margin-left: auto; width: fit-content; max-width: 420px; background: #f0eee6; border-radius: 14px; padding: 10px 14px; font-family: system-ui, sans-serif; font-size: 15px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  footer { padding: 12px 0 20px; }
+  .composer { min-inline-size: 0; width: 680px; margin: 0 auto; border: 1px solid #e6e1d6; border-radius: 18px; background: #fff; padding: 12px; box-sizing: border-box; }
+  .chips { display: flex; gap: 8px; }
+  [data-testid="file-thumbnail"] { width: 120px; font-size: 12px; border: 1px solid #e6e1d6; border-radius: 8px; padding: 6px; }
+  [data-testid="chat-input"] { min-height: 24px; outline: none; font-family: system-ui, sans-serif; }
+  [data-selection-tooltip] { position: fixed; }
+  [data-selection-tooltip] > div { display: flex; background: rgba(0,0,0,.8); border-radius: 8px; color: #fff; }
+  [data-selection-tooltip] button { background: transparent; color: #fff; border: 0; padding: 6px 12px; font: 500 14px system-ui; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="scroller" id="scroller">
+  <div data-testid="transcript-list" id="list"></div>
+</div>
+<footer>
+  <fieldset class="composer">
+    <div class="chips" id="chips"></div>
+    <div data-testid="chat-input" contenteditable="true" role="textbox"></div>
+    <button data-testid="chat-input-send" aria-label="Send message" type="button">Send</button>
+  </fieldset>
+</footer>
+
+<script>
+// ---- Stand-in for the Chrome extension APIs Cairn uses ----
+// Storage lives in localStorage, so two tabs of this page share it like two
+// claude.ai tabs share chrome.storage. Delete chrome.runtime.id to simulate
+// the extension being reloaded while the tab stays open.
+// Opened with ?test: start from empty data and run tests/practice-suite.js.
+const runningTests = new URLSearchParams(location.search).has('test');
+if (runningTests) localStorage.removeItem('cairn-test');
+const readAll = () => JSON.parse(localStorage.getItem('cairn-test') || '{}');
+const changeListeners = [];
+function notify(before, after) {
+  const changes = {};
+  for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
+    if (JSON.stringify(before[key]) !== JSON.stringify(after[key])) changes[key] = { oldValue: before[key], newValue: after[key] };
+  }
+  if (Object.keys(changes).length) changeListeners.forEach((listener) => listener(changes, 'local'));
+}
+window.addEventListener('storage', (event) => {
+  if (event.key === 'cairn-test') notify(JSON.parse(event.oldValue || '{}'), JSON.parse(event.newValue || '{}'));
+});
+window.chrome = {
+  // ?nocss points Cairn's stylesheet at a missing file, to see what the page
+  // looks like before panel.css arrives (a slow load on claude.ai).
+  runtime: { id: 'practice-page', getURL: (path) => (location.search.includes('nocss') ? '/missing.css' : `../../../${path}`) },
+  storage: {
+    onChanged: { addListener: (listener) => changeListeners.push(listener) },
+    local: {
+      async get(key) {
+        const all = readAll();
+        if (key == null) return all;
+        return key in all ? { [key]: all[key] } : {};
+      },
+      async set(obj) {
+        if (!chrome.runtime.id) throw new Error('Extension context invalidated.');
+        const before = readAll();
+        const after = { ...before, ...obj };
+        localStorage.setItem('cairn-test', JSON.stringify(after));
+        notify(before, after);
+      },
+    },
+  },
+};
+
+// ---- Fake conversation: 40 messages, only nearby ones are on the page ----
+const topics = ['Bayes theorem', 'priors', 'likelihoods', 'posteriors', 'conjugate priors', 'MCMC', 'credible intervals', 'model checking'];
+const messages = [];
+for (let i = 0; i < 40; i++) {
+  const t = topics[Math.floor(i / 2) % topics.length];
+  messages.push(i % 2 === 0
+    ? { role: 'user', text: `Question ${i / 2 + 1}: can you explain ${t}?` }
+    : { role: 'assistant', topic: t, paras: [
+        `Here is part ${i} about ${t}. The key idea is simple once you see it.`,
+        `In message ${i}, the important sentence is that ${t} connect what you believed to what you observed.`,
+        `The key idea is simple once you see it.`,
+      ] });
+}
+const ROW_H = (m) => (m.role === 'user' ? 90 : 260);
+const tops = [];
+let total = 0;
+for (const m of messages) { tops.push(total); total += ROW_H(m); }
+
+const list = document.getElementById('list');
+const scroller = document.getElementById('scroller');
+list.style.height = total + 'px';
+const mounted = new Map();
+
+function rowEl(i) {
+  const m = messages[i];
+  const row = document.createElement('div');
+  row.dataset.testid = 'transcript-row';
+  row.setAttribute('data-testid', 'transcript-row');
+  row.setAttribute('data-index', i);
+  row.style.top = tops[i] + 'px';
+  const h = document.createElement('h2');
+  h.className = 'sr-only';
+  h.textContent = m.role === 'user' ? 'You said: ' + m.text : 'Claude responded:';
+  row.append(h);
+  if (m.role === 'user') {
+    const u = document.createElement('div');
+    u.setAttribute('data-testid', 'user-message');
+    u.innerHTML = `<p style="margin:0">${m.text}</p>`;
+    row.append(u);
+  } else {
+    const a = document.createElement('div');
+    a.setAttribute('data-testid', 'assistant-message');
+    // Like Claude's answers: a section heading and a bolded key term.
+    const [first, ...rest] = m.paras;
+    const lead = first.replace(m.topic, `<strong>${m.topic}</strong>`);
+    a.innerHTML = `<div class="font-claude-response"><h3>Understanding ${m.topic}</h3><p>${lead}</p>${rest.map((p) => `<p>${p}</p>`).join('')}</div><button>Copy</button>`;
+    row.append(a);
+  }
+  return row;
+}
+
+function virtualize() {
+  const from = scroller.scrollTop - 600, to = scroller.scrollTop + scroller.clientHeight + 600;
+  messages.forEach((_, i) => {
+    const visible = tops[i] + ROW_H(messages[i]) > from && tops[i] < to;
+    if (visible && !mounted.has(i)) { const r = rowEl(i); mounted.set(i, r); list.append(r); }
+    if (!visible && mounted.has(i)) { mounted.get(i).remove(); mounted.delete(i); }
+  });
+}
+scroller.addEventListener('scroll', virtualize);
+virtualize();
+scroller.scrollTop = total;
+virtualize();
+
+// ---- Fake "Reply" popup on highlight (assistant messages only) ----
+let tip = null;
+document.addEventListener('mouseup', (e) => {
+  if (tip && tip.contains(e.target)) return;
+  setTimeout(async () => {
+    tip?.remove(); tip = null;
+    const sel = getSelection();
+    if (sel.isCollapsed || !sel.anchorNode?.parentElement?.closest('[data-testid="assistant-message"]')) return;
+    const r = sel.getRangeAt(0).getBoundingClientRect();
+    const text = sel.toString();
+    tip = document.createElement('div');
+    tip.setAttribute('data-selection-tooltip', 'true');
+    tip.style.left = r.left + r.width / 2 - 40 + 'px';
+    tip.style.top = r.top - 44 + 'px';
+    // Like claude.ai: the popup appears first, its Reply button a moment
+    // later, and the button text ends with an icon-font character (U+E185).
+    tip.innerHTML = '<div></div>';
+    document.body.append(tip);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    tip.firstChild.innerHTML = '<button>Reply<span>\uE185</span></button>';
+    tip.querySelector('button').addEventListener('click', () => {
+      const chip = document.createElement('div');
+      chip.setAttribute('data-testid', 'file-thumbnail');
+      chip.innerHTML = `<blockquote style="margin:0"></blockquote>`;
+      chip.querySelector('blockquote').textContent = text;
+      document.getElementById('chips').append(chip);
+      tip.remove(); tip = null;
+      getSelection().removeAllRanges();
+    });
+  }, 30);
+});
+
+// ---- Fake send ----
+document.querySelector('[data-testid="chat-input-send"]').addEventListener('click', () => {
+  const input = document.querySelector('[data-testid="chat-input"]');
+  window.lastSent = { text: input.innerText.trim(), chips: document.querySelectorAll('[data-testid="file-thumbnail"]').length };
+  input.textContent = '';
+  document.getElementById('chips').replaceChildren();
+});
+</script>
+<script src="../../../src/claude-page.js"></script>
+<script src="../../../src/anchor.js"></script>
+<script src="../../../src/store.js"></script>
+<script src="../../../src/namer.js"></script>
+<script src="../../../src/ui.js"></script>
+<script src="../../../src/rail.js"></script>
+<script src="../../../src/ladder.js"></script>
+<script src="../../../src/bookmarks.js"></script>
+<script src="../../../src/replies.js"></script>
+<script src="../../../src/main.js"></script>
+<script>
+if (runningTests) document.body.append(Object.assign(document.createElement('script'), { src: '../../../tests/practice-suite.js' }));
+</script>
+</body>
+</html>

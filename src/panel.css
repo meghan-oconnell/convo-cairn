@@ -1,0 +1,440 @@
+/* Styles for Cairn's panel, ladder and toast. Loaded inside Cairn's shadow
+   root, so claude.ai's styles can't reach in and these can't leak out. */
+
+:host {
+  all: initial;
+  --surface: #ffffff;
+  --border: #e6e1d6;
+  --text: #141413;
+  --text-soft: #3d3d3a; /* Reply spot names: a touch lighter than bookmarks */
+  --tag-border: #d9d5cc;
+  --muted: #5e5d59;
+  --faint: #6b6a65;
+  --disabled: #c9c2b8;
+  /* Deep teal. Panel rocks are shaded by position, light at the top to dark
+     at the base (shade-0 … shade-4); color never signals importance. */
+  --shade-0: #6a9993;
+  --shade-1: #4f837d;
+  --shade-2: #386c66;
+  --shade-3: #24534e;
+  --shade-4: #143a36;
+  --glow: rgba(106, 153, 147, 0.55); /* behind the rock you last visited */
+  --rock: #6a9993; /* ladder rocks */
+  --accent: #2f5a54;
+  --accent-text: #2f5a54;
+  --accent-wash: #e8f1ef;
+  --hover: #f0eee6;
+  --shadow: 0 10px 28px rgba(20, 20, 19, 0.1);
+  /* Instrument Sans, bundled in fonts/ and declared in page.css. */
+  --font: "Cairn Instrument Sans", system-ui, sans-serif;
+  --serif: Georgia, serif; /* the quoted text under each Reply */
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147483000;
+  font-family: var(--font);
+  color: var(--text);
+}
+:host([data-theme="dark"]) {
+  --surface: #262624;
+  --border: #3d3d3a;
+  --text: #f5f4ef;
+  --text-soft: #d9d7cf;
+  --tag-border: #4a4945;
+  --muted: #b7b5ad;
+  --faint: #a3a19a;
+  --disabled: #57554f;
+  --shade-0: #d3ebe7;
+  --shade-1: #a9d2cb;
+  --shade-2: #80b6ad;
+  --shade-3: #5e9a90;
+  --shade-4: #4a847a;
+  --glow: rgba(130, 181, 173, 0.5);
+  --rock: #5d928a;
+  --accent: #b5d6d1;
+  --accent-text: #b5d6d1;
+  --accent-wash: #2a3634;
+  --hover: #33332f;
+  --shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+.cairn-layer > * { pointer-events: auto; }
+/* Standard reset: class rules below set display, which would otherwise beat
+   the browser's own [hidden] rule. */
+[hidden] { display: none !important; }
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* ---- Bookmark rail ---------------------------------------------------- */
+
+.cairn-rail {
+  position: fixed;
+  right: 22px;
+  top: 30vh;
+  width: 80px;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  transition: width 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+.cairn-rail.is-open {
+  width: 360px;
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+.cairn-more {
+  align-self: flex-end;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  padding: 2px 6px;
+  font-size: 12px;
+  color: var(--faint);
+}
+.cairn-rail-header {
+  height: 22px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+}
+.cairn-rail-title { display: none; }
+.cairn-rail.is-open .cairn-rail-title { display: block; }
+.cairn-rail-header .cairn-more { margin-left: auto; }
+/* The rocks scroll smoothly inside a 5-rock window (height set in ui.js). */
+.cairn-rail-list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain; /* scrolling here never scrolls the chat */
+  scroll-snap-type: y proximity; /* settle gently on a rock */
+  scrollbar-width: none;
+}
+.cairn-rail-list .cairn-row {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+}
+.cairn-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.cairn-row-main {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  padding: 0 6px;
+}
+.cairn-rail.is-open .cairn-row.is-active .cairn-row-main { background: var(--accent-wash); }
+.cairn-rail.is-open .cairn-row-main:hover { background: var(--hover); }
+.cairn-name {
+  display: none;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.cairn-rail.is-open .cairn-name { display: flex; }
+.cairn-name-text {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Reply spots: a size smaller, a touch lighter, and a small "reply" tag. */
+.cairn-row.is-reply .cairn-name {
+  align-items: center;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-soft);
+}
+.cairn-reply-tag {
+  flex-shrink: 0;
+  padding: 1px 4px;
+  border: 1px solid var(--tag-border);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.cairn-row.is-active .cairn-name { color: var(--accent-text); font-weight: 600; }
+.cairn-rock-slot {
+  width: 56px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+.cairn-rock path { fill: var(--rock); }
+/* The rock you last visited: a soft glow behind it, like sun on wet stone. */
+.cairn-rock-wrap {
+  position: relative;
+  display: block;
+  line-height: 0;
+}
+.cairn-rock-wrap .cairn-rock { position: relative; }
+.cairn-glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(100% + 10px);
+  height: 20px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--glow);
+  filter: blur(5px);
+}
+.cairn-del {
+  display: none;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--faint);
+  font-size: 15px;
+  line-height: 1;
+}
+.cairn-rail.is-open .cairn-row:hover .cairn-del { display: block; }
+.cairn-del:hover { background: var(--hover); }
+.cairn-rename {
+  flex: 1;
+  min-width: 0;
+  font: 14px var(--font);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 3px 6px;
+  outline: none;
+}
+
+/* ---- Reply ladder ----------------------------------------------------- */
+
+.cairn-ladder {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.cairn-pill {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 3px;
+}
+.cairn-pill-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--accent-wash);
+}
+.cairn-arrow {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+}
+.cairn-arrow.is-hover { background: var(--hover); }
+.cairn-arrow:disabled { color: var(--disabled); cursor: default; }
+/* The count is a button: usable at the ends, where it stands in for the only
+   arrow you can use; disabled (and plain text) in between. */
+.cairn-counter {
+  align-self: stretch;
+  min-width: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--muted);
+}
+.cairn-counter:disabled { cursor: default; color: var(--muted); }
+.cairn-counter:not(:disabled):hover { background: var(--hover); }
+.cairn-ladder-panel.is-preview,
+.cairn-ladder-panel.is-list {
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+.cairn-ladder-panel.is-preview {
+  width: 300px;
+  padding: 10px 12px;
+  gap: 2px;
+  cursor: pointer;
+}
+.cairn-ladder-panel.is-preview .cairn-rung-name { color: var(--accent-text); font-weight: 600; }
+.cairn-ladder-panel.is-list {
+  width: 340px;
+  padding: 8px;
+  gap: 2px;
+}
+.cairn-preview-head,
+.cairn-list-note { font-size: 12px; color: var(--faint); }
+.cairn-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 8px 6px;
+}
+.cairn-rung-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain; /* scrolling here never scrolls the chat */
+  scroll-snap-type: y proximity; /* settle gently on a row */
+  scrollbar-width: none; /* no scrollbar; the +N notes show there's more */
+}
+.cairn-rung-list .cairn-rung {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+}
+.cairn-list-later {
+  align-self: flex-end;
+  padding: 4px 8px 2px;
+}
+.cairn-list-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* A fixed-width slot keeps the pebbles centered, so they stack like a cairn. */
+.cairn-pebble-slot {
+  width: 44px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+}
+.cairn-rung {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  padding: 7px 8px;
+  text-align: left;
+}
+.cairn-rung:hover { background: var(--hover); }
+.cairn-rung.is-target { background: var(--accent-wash); }
+.cairn-rung.is-target .cairn-rung-name { color: var(--accent-text); font-weight: 600; }
+.cairn-rung-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.cairn-rung-name,
+.cairn-rung-detail {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cairn-rung-name { font-size: 14px; }
+.cairn-rung-detail { font-family: var(--serif); font-size: 13px; color: var(--muted); }
+.cairn-here { font-size: 11px; color: var(--faint); flex-shrink: 0; }
+
+/* ---- Toast ------------------------------------------------------------ */
+
+.cairn-toast {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(560px, calc(100vw - 32px));
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  background: #141413;
+  color: #faf9f5;
+  border-radius: 10px;
+  padding: 10px 12px 10px 14px;
+  font-size: 14px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+}
+.cairn-toast strong { font-weight: 600; }
+.cairn-toast-row {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.cairn-toast-note { flex: 1 1 220px; color: #d6d3ca; }
+.cairn-toast-btn {
+  border: 1px solid #3d3d3a;
+  background: transparent;
+  color: #faf9f5;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+.cairn-toast-btn:hover { background: #2b2b29; }
+.cairn-toast .cairn-rename { flex: 0 1 200px; background: #262624; color: #faf9f5; }
+
+/* ---- Backup Bookmark button (when Claude's popup isn't shown) --------- */
+
+.cairn-fallback-btn {
+  position: fixed;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cairn-rail { transition: none; }
+}
