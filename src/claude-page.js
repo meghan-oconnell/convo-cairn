@@ -38,9 +38,18 @@
       }
     },
 
-    // claude.ai/chat/<id>
+    // claude.ai/chat/<id>. Incognito chats stay at claude.ai/new?incognito
+    // and are never saved, so they get a temporary id instead: one per
+    // history entry, so starting another incognito chat starts fresh.
     chatId() {
+      if (page.isIncognito()) return `incognito:${navigation.currentEntry.key}`;
       return location.pathname.match(/\/chat\/([0-9a-f-]{36})/i)?.[1] ?? null;
+    },
+
+    // Checked on 2026-10-21: the address stays claude.ai/new?incognito for
+    // the whole chat.
+    isIncognito() {
+      return new URLSearchParams(location.search).has('incognito');
     },
 
     // Message rows currently on the page. claude.ai only keeps the rows near

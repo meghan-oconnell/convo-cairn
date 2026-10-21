@@ -5,7 +5,7 @@ A Chrome extension for claude.ai that lets you:
 - **Bookmark** any highlighted text in a chat, then jump back to it from a stack of rocks on the right edge.
 - **Climb the Reply ladder.** Every time you use Claude's Reply button, Cairn remembers the text you highlighted, and the ▲ ▼ pill above the message box takes you back to it.
 
-Everything is saved on your computer (Chrome's extension storage), per chat. Nothing is sent anywhere.
+Everything is saved on your computer (Chrome's extension storage), per chat. Nothing is sent anywhere. In claude.ai's incognito chats, bookmarks and Reply spots are kept only while the chat is open (they survive a refresh) and are forgotten when you leave the chat or close the tab.
 
 Convo Cairn is an independent project. It works on claude.ai but is not affiliated with or endorsed by Anthropic.
 
@@ -36,7 +36,7 @@ Bookmarks are named by their core concept and ladder rungs by the question you a
 | `manifest.json` | Tells Chrome what the extension is and that it runs on claude.ai. |
 | `src/claude-page.js` | **Everything Cairn knows about claude.ai's page.** If Claude changes its site, Cairn logs a `[Cairn]` warning in the console naming what it couldn't find; fix it in this file. |
 | `src/anchor.js` | Saves a spot (your exact text plus a little surrounding text) and finds it again, including scrolling older messages back into view. |
-| `src/store.js` | Saving and loading, per chat. Safe with the same chat open in several tabs. |
+| `src/store.js` | Saving and loading, per chat. Safe with the same chat open in several tabs. Incognito chats are kept in the tab's sessionStorage only. |
 | `src/namer.js` | Short names, via Chrome's built-in AI or a simple fallback. |
 | `src/ui.js` | Shared pieces: the cairn icon, rock shapes, the toast message, the shadow root that keeps Cairn's styles separate from claude.ai's, and the "stone window" both lists use (smooth scrolling, stones sized and shaded by position). |
 | `src/rail.js` | The rocks on the right: bookmarks and Reply spots together. |
