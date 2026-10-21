@@ -31,7 +31,9 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 2147483000;
+  /* Above the page's content, but below claude.ai's own menus and dialogs
+     (Share, model picker, etc.), which use Tailwind's z-50. */
+  z-index: 40;
   font-family: var(--font);
   color: var(--text);
 }

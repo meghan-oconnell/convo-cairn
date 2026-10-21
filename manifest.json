@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Convo Cairn",
   "version": "0.2.0",
-  "description": "Bookmark spots in your claude.ai chats and climb back to the text you replied to. Not affiliated with Anthropic.",
+  "description": "Bookmark spots in your claude.ai chats and climb back to the text you replied to.",
   "permissions": ["storage"],
   "icons": {
     "16": "icons/icon16.png",
