@@ -5,7 +5,7 @@ A Chrome extension for claude.ai that lets you:
 - **Bookmark** any highlighted text in a chat, then jump back to it from a stack of rocks on the right edge.
 - **Climb the Reply ladder.** Every time you use Claude's Reply button, Cairn remembers the text you highlighted, and the ▲ ▼ pill above the message box takes you back to it.
 
-Everything is saved on your computer (Chrome's extension storage), per chat. The only thing Cairn sends anywhere is error reports to the developer's Sentry project (see [Error reports](#error-reports)); they never contain chat text. In claude.ai's incognito chats, bookmarks and Reply spots are kept only while the chat is open (they survive a refresh) and are forgotten when you leave the chat or close the tab.
+Everything is saved on your computer (Chrome's extension storage), per chat. The only thing Cairn sends anywhere is error reports to the developer's Sentry project (see [Error reports](#error-reports)); they never contain chat text. Full details are in the [privacy policy](PRIVACY.md). In claude.ai's incognito chats, bookmarks and Reply spots are kept only while the chat is open (they survive a refresh) and are forgotten when you leave the chat or close the tab.
 
 Convo Cairn is an independent project. It works on claude.ai but is not affiliated with or endorsed by Anthropic.
 
