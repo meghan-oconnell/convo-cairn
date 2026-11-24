@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Convo Cairn",
   "version": "0.3.1",
-  "description": "Bookmark spots in your claude.ai chats and climb back to the text you replied to. Sends error reports (never chat text) to the developer.",
+  "description": "Navigate long claude.ai chats: bookmark any passage and retrace replies with the Reply ladder. Chat text stays in your browser.",
   "permissions": ["storage"],
   "background": { "service_worker": "src/background.js", "type": "module" },
   "icons": {
