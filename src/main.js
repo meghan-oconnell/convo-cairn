@@ -4,7 +4,7 @@
 
 (() => {
   const Cairn = globalThis.Cairn;
-  const { page, anchor, store, ui } = Cairn;
+  const { page, anchor, store, ui, monitor } = Cairn;
   const { el, toast } = ui;
 
   const FALLBACK_DELAY_MS = 250; // how long to wait for Claude's popup before showing Cairn's own button
@@ -52,8 +52,10 @@
         render();
       }
     } catch (error) {
-      if (store.isAlive()) console.error('[Cairn] Couldn’t save', error);
-      else teardown();
+      if (store.isAlive()) {
+        console.error('[Cairn] Couldn’t save', error);
+        monitor.captureException(error);
+      } else teardown();
     }
   }
 
@@ -137,6 +139,18 @@
     render();
   }
 
+  // ---- Health check ------------------------------------------------------
+
+  // After each page loads, reports any of claude.ai's elements Cairn can't
+  // find (see page.healthCheck). Skipped if you moved on before it finished.
+  async function checkHealth() {
+    const type = page.pageType();
+    const url = location.href;
+    const missing = await page.healthCheck();
+    if (location.href !== url || !store.isAlive()) return;
+    await monitor.reportBrokenSelectors(type, missing);
+  }
+
   // ---- Wiring ------------------------------------------------------------
 
   on(document, 'pointerdown', replies.onPointerDown, { capture: true });
@@ -152,7 +166,11 @@
   on(document, 'mouseup', () => setTimeout(() => bookmarks.injectIntoTooltip() || bookmarks.showFallback(), FALLBACK_DELAY_MS));
   on(document, 'selectionchange', () => window.getSelection()?.isCollapsed && bookmarks.hideFallback());
   on(window, 'resize', () => ladder.place());
-  on(navigation, 'currententrychange', syncChat); // claude.ai switches chats without reloading
+  on(navigation, 'currententrychange', () => {
+    // claude.ai switches pages without reloading
+    syncChat();
+    checkHealth();
+  });
 
   observe(document.body, { childList: true }, () => {
     mount(); // in case claude.ai removed Cairn's container
@@ -170,4 +188,5 @@
 
   mount();
   syncChat();
+  checkHealth();
 })();

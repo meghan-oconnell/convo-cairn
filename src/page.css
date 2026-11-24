@@ -12,13 +12,16 @@
 }
 
 /* The only other Cairn styles on claude.ai's own page: the Bookmark button added
-   inside Claude's dark highlight popup, and the flash when you arrive at a
-   bookmark. Everything else is in panel.css, inside Cairn's shadow root. */
+   inside Claude's highlight popup, and the flash when you arrive at a
+   bookmark. Everything else is in panel.css, inside Cairn's shadow root.
+   The button takes its colors from the popup (currentColor), which has been
+   both dark and, since November 2026, white. */
 
 .cairn-tip-divider {
   width: 1px;
   height: 18px;
-  background: rgba(255, 255, 255, 0.18);
+  background: currentColor;
+  opacity: 0.18;
   align-self: center;
 }
 
@@ -28,8 +31,9 @@
   gap: 6px;
   padding: 6px 12px;
   border: none;
+  border-radius: 8px;
   background: transparent;
-  color: #ffffff;
+  color: inherit;
   font-family: 'Cairn Instrument Sans', system-ui, sans-serif;
   font-size: 14px;
   font-weight: 500;
@@ -37,6 +41,6 @@
   white-space: nowrap;
   cursor: pointer;
 }
-.cairn-tip-btn:hover { background: rgba(255, 255, 255, 0.1); }
+.cairn-tip-btn:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
 
 ::highlight(cairn-flash) { background-color: rgba(106, 153, 147, 0.4); }

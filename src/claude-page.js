@@ -11,6 +11,7 @@
     selectionTooltip: '[data-selection-tooltip]', // the dark "Reply" popup shown on highlight
     composerInput: '[data-testid="chat-input"]',
     sendButton: '[data-testid="chat-input-send"]',
+    stopButton: '[data-testid="chat-input-stop"]', // replaces the send button while Claude replies
     quoteChip: '[data-testid="file-thumbnail"]', // the quote Reply adds above the composer
   };
 
@@ -24,15 +25,67 @@
   const REQUIRED = ['transcriptList', 'row', 'composerInput', 'sendButton'];
   const warned = new Set();
 
+  // Elements that take another's place for a while, so either one counts as
+  // found. Checked on 2026-11-16: while Claude writes a reply, the send button
+  // becomes a Stop button.
+  const STAND_INS = { sendButton: 'stopButton' };
+  const isOnPage = (name) =>
+    !!document.querySelector(SELECTORS[name]) || (name in STAND_INS && !!document.querySelector(SELECTORS[STAND_INS[name]]));
+
+  // What each kind of page always has once it has loaded, checked on
+  // 2026-10-21. A new chat or project has no messages yet. The highlight
+  // popup and quote chip only appear when you use them, so checkPage()
+  // watches those instead.
+  const EXPECTED = {
+    new_chat: ['composerInput', 'sendButton'],
+    existing_chat: ['transcriptList', 'row', 'composerInput', 'sendButton'],
+    project: ['composerInput', 'sendButton'],
+    other: [],
+  };
+
+  // How long claude.ai gets to finish building a page before anything
+  // still missing counts as broken.
+  const HEALTH_CHECK_WAIT_MS = 10000;
+
   const page = {
     THEME_ATTRIBUTE,
+    SELECTORS,
+
+    // claude.ai/new (incognito chats too), /chat/<id>, /project/<id>.
+    pageType() {
+      const path = location.pathname;
+      if (/\/new\/?$/.test(path)) return 'new_chat';
+      if (/\/chat\/[0-9a-f-]{36}/i.test(path)) return 'existing_chat';
+      if (/\/project\/[0-9a-f-]{36}/i.test(path)) return 'project';
+      return 'other';
+    },
+
+    // Waits for this page's expected elements to appear, then resolves with
+    // the names of any still missing after HEALTH_CHECK_WAIT_MS. claude.ai
+    // builds its pages after loading, so this watches for changes rather
+    // than checking once.
+    healthCheck() {
+      const expected = EXPECTED[page.pageType()];
+      const missing = () => expected.filter((name) => !isOnPage(name));
+      return new Promise((resolve) => {
+        if (!missing().length) return resolve([]);
+        const finish = () => {
+          observer.disconnect();
+          clearTimeout(timer);
+          resolve(missing());
+        };
+        const observer = new MutationObserver(() => missing().length || finish());
+        observer.observe(document.body, { childList: true, subtree: true });
+        const timer = setTimeout(finish, HEALTH_CHECK_WAIT_MS);
+      });
+    },
 
     // Called when you use Cairn (bookmark, Reply, jump), never during page
     // load when claude.ai may still be building the page. Warns once for each
     // element that's missing, which means claude.ai has changed.
     checkPage() {
       for (const name of REQUIRED) {
-        if (document.querySelector(SELECTORS[name]) || warned.has(name)) continue;
+        if (isOnPage(name) || warned.has(name)) continue;
         warned.add(name);
         console.warn(`[Cairn] Couldn't find ${name} (${SELECTORS[name]}) on claude.ai. Update src/claude-page.js.`);
       }

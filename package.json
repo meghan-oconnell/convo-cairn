@@ -1,0 +1,13 @@
+{
+  "name": "convo-cairn",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/monitor.js --bundle --format=iife --target=chrome120 --minify --outfile=dist/monitor.js",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "@sentry/browser": "11.8.0",
+    "esbuild": "0.28.2"
+  }
+}

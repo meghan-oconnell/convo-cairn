@@ -63,11 +63,19 @@
     },
 
     // Calls onChange(record) when another tab (or this one) saves this chat.
+    // Chrome catches errors thrown in its own event listeners and only logs
+    // them, so they never reach the error listeners in monitor.js; report
+    // them here.
     watch(getChatId, onChange) {
       chrome.storage.onChanged.addListener((changes, area) => {
-        const chatId = getChatId();
-        const change = area === 'local' && chatId && changes[keyFor(chatId)];
-        if (change) onChange({ ...emptyRecord(), ...change.newValue });
+        try {
+          const chatId = getChatId();
+          const change = area === 'local' && chatId && changes[keyFor(chatId)];
+          if (change) onChange({ ...emptyRecord(), ...change.newValue });
+        } catch (error) {
+          Cairn.monitor.captureException(error);
+          throw error;
+        }
       });
     },
 

@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Convo Cairn",
-  "version": "0.2.0",
-  "description": "Bookmark spots in your claude.ai chats and climb back to the text you replied to.",
+  "version": "0.3.1",
+  "description": "Bookmark spots in your claude.ai chats and climb back to the text you replied to. Sends error reports (never chat text) to the developer.",
   "permissions": ["storage"],
+  "background": { "service_worker": "src/background.js", "type": "module" },
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -14,6 +15,7 @@
     {
       "matches": ["https://claude.ai/*"],
       "js": [
+        "dist/monitor.js",
         "src/claude-page.js",
         "src/anchor.js",
         "src/store.js",
